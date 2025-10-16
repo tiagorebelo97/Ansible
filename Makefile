@@ -22,7 +22,7 @@ post-install: ## Run post-installation configuration
 ping: ## Test connectivity to all hosts
 	ansible all -m ping
 
-inventory: ## List inventory
+show-inventory: ## List inventory
 	ansible-inventory --list -i inventory/hosts.yml
 
 lint: ## Lint Ansible playbooks (requires ansible-lint)
