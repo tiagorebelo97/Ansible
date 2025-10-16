@@ -1,0 +1,82 @@
+---
+# Post-installation configuration playbook
+# Run after OpenShift cluster is installed
+
+- name: Post-installation OpenShift configuration
+  hosts: localhost
+  gather_facts: false
+  vars:
+    kubeconfig_path: "{{ lookup('env', 'KUBECONFIG') | default('/root/openshift/auth/kubeconfig', true) }}"
+  
+  tasks:
+    - name: Verify cluster is accessible
+      kubernetes.core.k8s_cluster_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+      register: cluster_info
+      tags: verify
+
+    - name: Get cluster version
+      kubernetes.core.k8s_info:
+        api_version: config.openshift.io/v1
+        kind: ClusterVersion
+        name: version
+        kubeconfig: "{{ kubeconfig_path }}"
+      register: cluster_version
+      tags: verify
+
+    - name: Display cluster version
+      ansible.builtin.debug:
+        msg: "Cluster version: {{ cluster_version.resources[0].status.desired.version }}"
+      when: cluster_version.resources | length > 0
+      tags: verify
+
+    - name: Get all nodes
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Node
+        kubeconfig: "{{ kubeconfig_path }}"
+      register: nodes
+      tags: nodes
+
+    - name: Display node information
+      ansible.builtin.debug:
+        msg: "Node {{ item.metadata.name }} - Status: {{ item.status.conditions | selectattr('type', 'equalto', 'Ready') | map(attribute='status') | first }}"
+      loop: "{{ nodes.resources }}"
+      tags: nodes
+
+    - name: Get cluster operators status
+      kubernetes.core.k8s_info:
+        api_version: config.openshift.io/v1
+        kind: ClusterOperator
+        kubeconfig: "{{ kubeconfig_path }}"
+      register: cluster_operators
+      tags: operators
+
+    - name: Check for degraded operators
+      ansible.builtin.debug:
+        msg: "WARNING: Operator {{ item.metadata.name }} is degraded"
+      when: 
+        - item.status.conditions | selectattr('type', 'equalto', 'Degraded') | selectattr('status', 'equalto', 'True') | list | length > 0
+      loop: "{{ cluster_operators.resources }}"
+      tags: operators
+
+    - name: Create namespace for applications
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: "{{ item }}"
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+      loop:
+        - applications
+        - monitoring
+      tags: namespaces
+
+    - name: Display post-installation summary
+      ansible.builtin.debug:
+        msg:
+          - "Post-installation configuration completed"
+          - "Total nodes: {{ nodes.resources | length }}"
+          - "Cluster operators: {{ cluster_operators.resources | length }}"
+          - "Additional namespaces created: applications, monitoring"
+      tags: summary

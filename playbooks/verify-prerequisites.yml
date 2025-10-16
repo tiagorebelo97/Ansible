@@ -1,0 +1,81 @@
+---
+# Verify OpenShift cluster prerequisites
+# Run this playbook before installation to ensure all nodes meet requirements
+
+- name: Verify prerequisites on all nodes
+  hosts: openshift
+  gather_facts: true
+  tasks:
+    - name: Check OS version
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution in ['RedHat', 'CentOS', 'Rocky', 'AlmaLinux']
+          - ansible_distribution_major_version | int >= 8
+        fail_msg: "Unsupported OS. OpenShift requires RHEL/CentOS 8+ or compatible"
+        success_msg: "OS check passed: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      tags: os
+
+    - name: Check CPU cores (masters)
+      ansible.builtin.assert:
+        that:
+          - ansible_processor_vcpus >= 4
+        fail_msg: "Master nodes require at least 4 CPU cores"
+      when: "'masters' in group_names"
+      tags: hardware
+
+    - name: Check CPU cores (workers)
+      ansible.builtin.assert:
+        that:
+          - ansible_processor_vcpus >= 2
+        fail_msg: "Worker nodes require at least 2 CPU cores"
+      when: "'workers' in group_names"
+      tags: hardware
+
+    - name: Check memory (masters)
+      ansible.builtin.assert:
+        that:
+          - ansible_memtotal_mb >= 16384
+        fail_msg: "Master nodes require at least 16GB RAM"
+      when: "'masters' in group_names"
+      tags: hardware
+
+    - name: Check memory (workers)
+      ansible.builtin.assert:
+        that:
+          - ansible_memtotal_mb >= 8192
+        fail_msg: "Worker nodes require at least 8GB RAM"
+      when: "'workers' in group_names"
+      tags: hardware
+
+    - name: Check disk space
+      ansible.builtin.shell: df -BG / | tail -1 | awk '{print $4}' | sed 's/G//'
+      register: disk_space
+      changed_when: false
+      failed_when: disk_space.stdout | int < 120
+      tags: hardware
+
+    - name: Check network connectivity
+      ansible.builtin.wait_for:
+        host: "{{ item }}"
+        port: 22
+        timeout: 5
+      loop: "{{ groups['openshift'] | map('extract', hostvars, 'ansible_host') | list }}"
+      delegate_to: localhost
+      tags: network
+
+    - name: Verify Python is installed
+      ansible.builtin.command: python3 --version
+      register: python_version
+      changed_when: false
+      tags: software
+
+    - name: Display verification summary
+      ansible.builtin.debug:
+        msg:
+          - "Node: {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "CPUs: {{ ansible_processor_vcpus }}"
+          - "Memory: {{ ansible_memtotal_mb }}MB"
+          - "Disk Space: {{ disk_space.stdout }}GB available"
+          - "Python: {{ python_version.stdout }}"
+      tags: summary

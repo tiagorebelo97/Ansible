@@ -1,0 +1,14 @@
+---
+# Worker nodes specific configuration
+
+# Worker node resources
+worker_vcpus: 8
+worker_memory: 32768  # MB
+worker_disk_size: 200  # GB
+
+# Worker node labels
+node_labels:
+  node-role.kubernetes.io/worker: ""
+
+# Taints (none for workers by default)
+node_taints: []

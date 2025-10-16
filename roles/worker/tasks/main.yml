@@ -1,0 +1,45 @@
+---
+# Worker node configuration
+
+- name: Ensure worker node is properly configured
+  ansible.builtin.debug:
+    msg: "Configuring worker node: {{ inventory_hostname }}"
+  tags: worker
+
+- name: Create kubelet configuration directory
+  ansible.builtin.file:
+    path: /etc/kubernetes
+    state: directory
+    mode: '0755'
+  tags: worker
+
+- name: Configure worker-specific firewall rules
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop:
+    - "10250/tcp"  # Kubelet API
+    - "30000-32767/tcp"  # NodePort Services
+  when: firewalld_enabled | bool
+  tags:
+    - worker
+    - firewall
+
+- name: Ensure sufficient disk space
+  ansible.builtin.shell: |
+    df -h {{ node_disk | default('/') }} | tail -1 | awk '{print $5}' | sed 's/%//'
+  register: disk_usage
+  changed_when: false
+  failed_when: disk_usage.stdout | int > 80
+  tags: worker
+
+- name: Display worker node information
+  ansible.builtin.debug:
+    msg:
+      - "Worker node {{ inventory_hostname }} configuration completed"
+      - "Node type: {{ node_type }}"
+      - "IP Address: {{ ansible_host }}"
+      - "Disk usage: {{ disk_usage.stdout }}%"
+  tags: worker

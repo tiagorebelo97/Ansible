@@ -1,0 +1,9 @@
+---
+# Worker role
+dependencies: []
+
+galaxy_info:
+  author: Infrastructure Team
+  description: Worker node configuration for OpenShift
+  license: MIT
+  min_ansible_version: '2.15'
