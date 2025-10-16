@@ -1,0 +1,4 @@
+---
+# Prerequisites default variables
+container_runtime: "crio"
+crio_version: "1.28"

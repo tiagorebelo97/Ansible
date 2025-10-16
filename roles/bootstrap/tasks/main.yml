@@ -1,0 +1,40 @@
+---
+# Bootstrap node configuration
+
+- name: Create OpenShift installation directory
+  ansible.builtin.file:
+    path: /opt/openshift-install
+    state: directory
+    mode: '0755'
+  tags: bootstrap
+
+- name: Download OpenShift installer
+  ansible.builtin.get_url:
+    url: "{{ openshift_install_binary_url }}"
+    dest: /tmp/openshift-install.tar.gz
+    mode: '0644'
+  tags: bootstrap
+
+- name: Extract OpenShift installer
+  ansible.builtin.unarchive:
+    src: /tmp/openshift-install.tar.gz
+    dest: /usr/local/bin/
+    remote_src: true
+  tags: bootstrap
+
+- name: Set executable permissions on openshift-install
+  ansible.builtin.file:
+    path: /usr/local/bin/openshift-install
+    mode: '0755'
+  tags: bootstrap
+
+- name: Display bootstrap instructions
+  ansible.builtin.debug:
+    msg:
+      - "Bootstrap node configured successfully"
+      - "Next steps:"
+      - "1. Create install-config.yaml"
+      - "2. Generate manifests: openshift-install create manifests"
+      - "3. Generate ignition configs: openshift-install create ignition-configs"
+      - "4. Serve ignition files via HTTP server"
+  tags: bootstrap

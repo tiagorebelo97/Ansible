@@ -1,0 +1,5 @@
+---
+# Common role default variables
+timezone: "UTC"
+selinux_state: "enforcing"
+firewalld_enabled: true

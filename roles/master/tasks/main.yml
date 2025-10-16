@@ -1,0 +1,41 @@
+---
+# Master node configuration
+
+- name: Ensure master node is properly configured
+  ansible.builtin.debug:
+    msg: "Configuring master node: {{ inventory_hostname }}"
+  tags: master
+
+- name: Create kubelet configuration directory
+  ansible.builtin.file:
+    path: /etc/kubernetes
+    state: directory
+    mode: '0755'
+  tags: master
+
+- name: Configure etcd firewall rules
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop:
+    - "2379/tcp"
+    - "2380/tcp"
+  when: firewalld_enabled | bool
+  tags:
+    - master
+    - firewall
+
+- name: Set master node labels
+  ansible.builtin.debug:
+    msg: "Master node labels will be applied post-installation via oc command"
+  tags: master
+
+- name: Display master node information
+  ansible.builtin.debug:
+    msg:
+      - "Master node {{ inventory_hostname }} configuration completed"
+      - "Node type: {{ node_type }}"
+      - "IP Address: {{ ansible_host }}"
+  tags: master

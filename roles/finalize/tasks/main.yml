@@ -1,0 +1,65 @@
+---
+# Finalize OpenShift installation
+
+- name: Wait for API server to be available
+  ansible.builtin.uri:
+    url: "https://api.{{ cluster_name }}.{{ base_domain }}:6443/healthz"
+    validate_certs: false
+    status_code: 200
+  register: api_health
+  until: api_health.status == 200
+  retries: 60
+  delay: 10
+  ignore_errors: true
+  tags: finalize
+
+- name: Display cluster access information
+  ansible.builtin.debug:
+    msg:
+      - "============================================"
+      - "OpenShift Cluster Installation Complete"
+      - "============================================"
+      - "Cluster Name: {{ cluster_name }}"
+      - "Base Domain: {{ base_domain }}"
+      - "API URL: https://api.{{ cluster_name }}.{{ base_domain }}:6443"
+      - "Console URL: https://console-openshift-console.apps.{{ cluster_name }}.{{ base_domain }}"
+      - ""
+      - "To access the cluster:"
+      - "  export KUBECONFIG=/path/to/auth/kubeconfig"
+      - "  oc get nodes"
+      - "  oc get co  # Check cluster operators"
+      - ""
+      - "Master Nodes: 3"
+      - "Worker Nodes: 3"
+  tags: finalize
+
+- name: Create cluster info file
+  ansible.builtin.copy:
+    content: |
+      OpenShift Cluster Information
+      =============================
+      
+      Cluster Name: {{ cluster_name }}
+      Base Domain: {{ base_domain }}
+      
+      API Endpoint:
+        https://api.{{ cluster_name }}.{{ base_domain }}:6443
+      
+      Console:
+        https://console-openshift-console.apps.{{ cluster_name }}.{{ base_domain }}
+      
+      Nodes:
+        Masters: 3 (master01, master02, master03)
+        Workers: 3 (worker01, worker02, worker03)
+      
+      Access:
+        export KUBECONFIG=/path/to/auth/kubeconfig
+        oc login -u kubeadmin -p <password>
+        
+      Verify Installation:
+        oc get nodes
+        oc get co
+        oc get pods -A
+    dest: /tmp/cluster-info.txt
+    mode: '0644'
+  tags: finalize

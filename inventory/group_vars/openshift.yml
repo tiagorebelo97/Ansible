@@ -1,0 +1,45 @@
+---
+# OpenShift cluster-wide variables
+
+# Cluster Information
+cluster_name: "ocp-cluster"
+base_domain: "example.com"
+cluster_network_cidr: "10.128.0.0/14"
+cluster_network_host_prefix: 23
+service_network: "172.30.0.0/16"
+
+# OpenShift Version
+openshift_version: "4.14"
+openshift_install_binary_url: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest-{{ openshift_version }}/openshift-install-linux.tar.gz"
+openshift_client_binary_url: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest-{{ openshift_version }}/openshift-client-linux.tar.gz"
+
+# Installation Method
+install_method: "upi"  # User Provisioned Infrastructure
+
+# Network Configuration
+dns_servers:
+  - 8.8.8.8
+  - 8.8.4.4
+
+ntp_servers:
+  - 0.rhel.pool.ntp.org
+  - 1.rhel.pool.ntp.org
+
+# Registry Configuration
+registry_mirror: ""
+registry_pull_secret: ""  # Path to pull secret file
+
+# SSH Configuration
+ssh_public_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
+# Proxy Configuration (if required)
+http_proxy: ""
+https_proxy: ""
+no_proxy: ""
+
+# Storage
+storage_class: "local-storage"
+
+# Node Configuration
+node_disk: "/dev/sda"
+node_disk_size: "120"

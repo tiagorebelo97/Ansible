@@ -1,0 +1,14 @@
+---
+# Common role - Basic configuration for all nodes
+dependencies: []
+
+galaxy_info:
+  author: Infrastructure Team
+  description: Common configuration for OpenShift nodes
+  license: MIT
+  min_ansible_version: '2.15'
+  platforms:
+    - name: EL
+      versions:
+        - 8
+        - 9

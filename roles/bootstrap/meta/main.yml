@@ -1,0 +1,9 @@
+---
+# Bootstrap role
+dependencies: []
+
+galaxy_info:
+  author: Infrastructure Team
+  description: Bootstrap node configuration for OpenShift
+  license: MIT
+  min_ansible_version: '2.15'

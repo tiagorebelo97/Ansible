@@ -1,0 +1,53 @@
+# Ansible artifacts
+*.retry
+*.log
+.ansible/
+.ansible_module_cache/
+
+# Vault password files
+.vault_pass
+vault_pass.txt
+
+# Temporary files
+*.tmp
+*.swp
+*~
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OpenShift specific
+openshift-install
+openshift-install-*
+*.ign
+auth/
+metadata.json
+terraform.tfstate*
+.terraform/
+
+# Sensitive data
+secrets/
+credentials/
+*.pem
+*.key
+!roles/**/*.key  # Allow example keys in roles
+
+# Collections
+collections/
+
+# Environment
+.env
+.envrc

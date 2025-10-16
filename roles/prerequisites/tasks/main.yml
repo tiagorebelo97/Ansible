@@ -1,0 +1,99 @@
+---
+# Prerequisites for OpenShift installation
+
+- name: Load kernel modules
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+    persistent: present
+  loop:
+    - overlay
+    - br_netfilter
+  tags: kernel
+
+- name: Set sysctl parameters for Kubernetes
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop:
+    - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+    - { name: 'net.ipv4.ip_forward', value: '1' }
+  tags: kernel
+
+- name: Configure firewall for OpenShift
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop:
+    - "6443/tcp"    # Kubernetes API server
+    - "22623/tcp"   # Machine config server
+    - "443/tcp"     # HTTPS
+    - "80/tcp"      # HTTP
+    - "10250/tcp"   # Kubelet
+    - "2379-2380/tcp"  # etcd
+  when: firewalld_enabled | bool
+  tags: firewall
+
+- name: Add CRI-O repository
+  ansible.builtin.yum_repository:
+    name: "cri-o"
+    description: "CRI-O repository"
+    baseurl: "https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/{{ crio_version }}/CentOS_{{ ansible_distribution_major_version }}/"
+    gpgcheck: true
+    gpgkey: "https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/{{ crio_version }}/CentOS_{{ ansible_distribution_major_version }}/repodata/repomd.xml.key"
+  tags: crio
+
+- name: Install CRI-O and related tools
+  ansible.builtin.yum:
+    name:
+      - cri-o
+      - cri-tools
+      - containernetworking-plugins
+    state: present
+  tags: crio
+
+- name: Start and enable CRI-O
+  ansible.builtin.systemd:
+    name: crio
+    state: started
+    enabled: true
+  tags: crio
+
+- name: Install OpenShift client tools
+  block:
+    - name: Create temporary directory
+      ansible.builtin.tempfile:
+        state: directory
+      register: temp_dir
+
+    - name: Download OpenShift client
+      ansible.builtin.get_url:
+        url: "{{ openshift_client_binary_url }}"
+        dest: "{{ temp_dir.path }}/openshift-client.tar.gz"
+        mode: '0644'
+
+    - name: Extract OpenShift client
+      ansible.builtin.unarchive:
+        src: "{{ temp_dir.path }}/openshift-client.tar.gz"
+        dest: /usr/local/bin/
+        remote_src: true
+
+    - name: Set executable permissions
+      ansible.builtin.file:
+        path: "/usr/local/bin/{{ item }}"
+        mode: '0755'
+      loop:
+        - oc
+        - kubectl
+
+  always:
+    - name: Remove temporary directory
+      ansible.builtin.file:
+        path: "{{ temp_dir.path }}"
+        state: absent
+  tags: oc-client

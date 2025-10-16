@@ -1,0 +1,9 @@
+---
+# Finalize role
+dependencies: []
+
+galaxy_info:
+  author: Infrastructure Team
+  description: Finalize OpenShift installation
+  license: MIT
+  min_ansible_version: '2.15'

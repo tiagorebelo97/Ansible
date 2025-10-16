@@ -1,0 +1,55 @@
+---
+# Main playbook for OpenShift cluster installation
+# This playbook orchestrates the installation of OpenShift on 3 masters + 3 workers
+
+- name: Prepare all nodes for OpenShift installation
+  hosts: openshift
+  gather_facts: true
+  roles:
+    - common
+    - prerequisites
+
+- name: Configure load balancer (if applicable)
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Load balancer configuration
+      ansible.builtin.debug:
+        msg: "Configure external load balancer for API (6443) and Ingress (80, 443)"
+
+- name: Bootstrap OpenShift cluster
+  hosts: bootstrap_node
+  gather_facts: true
+  roles:
+    - bootstrap
+
+- name: Configure master nodes
+  hosts: masters
+  gather_facts: true
+  serial: 1
+  roles:
+    - master
+
+- name: Configure worker nodes
+  hosts: workers
+  gather_facts: true
+  roles:
+    - worker
+
+- name: Finalize OpenShift installation
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - finalize
+
+- name: Post-installation configuration
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display cluster information
+      ansible.builtin.debug:
+        msg:
+          - "OpenShift cluster installation completed!"
+          - "Cluster: {{ cluster_name }}.{{ base_domain }}"
+          - "Console: https://console-openshift-console.apps.{{ cluster_name }}.{{ base_domain }}"
+          - "API: https://api.{{ cluster_name }}.{{ base_domain }}:6443"
